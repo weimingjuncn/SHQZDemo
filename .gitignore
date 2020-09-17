@@ -72,3 +72,17 @@
 /Assets/Scripts/Utilities
 /Assets/Scripts/UI.meta
 /Assets/Scripts/Utilities.meta
+/Assets/Scenes
+/Assets/Prefabs
+/Assets/Scripts/Managers/*.meta
+/Assets/Scripts/Items/*.meta
+/Assets/Scripts/Controller/*.meta
+/Assets/Scripts/*.meta
+/Assets/Scripts/Projectile/*.meta
+/Assets/Scripts/Inventory/*.meta
+/Assets/Scripts/Utilities/*.meta
+/Assets/Scripts/Utilities/WeaponPlacer/*.meta
+/Assets/Scripts/Utilities/XML Maker/*.meta
+/Assets/Scripts/Stats/*.meta
+/Assets/Scripts/UI/*.meta
+/Assets/Scripts/Enemies/*.meta

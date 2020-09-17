@@ -1,74 +1,123 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
 namespace SHQZ
 {
     public class CameraManager : MonoBehaviour
     {
-        public bool lockOn;
+        public bool lockon;
+        public float followSpeed = 9;
         public float mouseSpeed = 2;
         public float controllerSpeed = 7;
-        public float followSpeed = 9;
 
-        float turnSmoothing = .1f;
-        float smoothX;
-        float smoothY;
-        float smoothXVelocity;
-        float smoothYVelocity;
-
-        public float lookAngle;
-        public float tilAngle;
-        public float minAngle = -35;
-        public float maxAngle = 35;
-
-        public static CameraManager singleton;
         public Transform target;
-        public Transform lockOnTarget;
+        public EnemyTarget lockonTarget;
+        public Transform lockonTransform;
 
         [HideInInspector]
         public Transform pivot;
         [HideInInspector]
-        public Transform cameraTrans;
-        
-        private void Awake()
+        public Transform camTrans;
+        StateManager states;
+
+        float turnSmoothing = .1f;
+        public float minAngle = -35;
+        public float maxAngle = 35;
+
+        float smoothX;
+        float smoothY;
+        float smoothXvelocity;
+        float smoothYvelocity;
+        public float lookAngle;
+        public float tiltAngle;
+
+        bool usedRightAxis;
+
+        bool changeTargetLeft;
+        bool changeTargetRight;
+
+        public void Init(StateManager st)
         {
-            singleton = this;
+            states = st;
+            target = st.transform;
+
+            camTrans = Camera.main.transform;
+            pivot = camTrans.parent;
         }
-        public void Init(Transform t)
-        {
-            target = t;
-            cameraTrans = Camera.main.transform;
-            pivot = cameraTrans.parent;
-        }
+
+
         public void Tick(float d)
         {
             float h = Input.GetAxis("Mouse X");
             float v = Input.GetAxis("Mouse Y");
+
             float c_h = Input.GetAxis("RightAxis X");
             float c_v = Input.GetAxis("RightAxis Y");
+
             float targetSpeed = mouseSpeed;
 
-            if(c_h != 0 || c_v != 0)
+            changeTargetLeft = Input.GetKeyUp(KeyCode.V);
+            changeTargetRight = Input.GetKeyUp(KeyCode.B);
+
+            if (lockonTarget != null)
+            {
+                if (lockonTransform == null)
+                {
+                    lockonTransform = lockonTarget.GetTarget();
+                    states.lockOnTransform = lockonTransform;
+                }
+
+                if (Mathf.Abs(c_h) > 0.6f)
+                {
+                    if (!usedRightAxis)
+                    {
+                        lockonTransform = lockonTarget.GetTarget((c_h > 0));
+                        states.lockOnTransform = lockonTransform;
+                        usedRightAxis = true;
+                    }
+                }
+
+                if (changeTargetLeft || changeTargetRight)
+                {
+                    lockonTransform = lockonTarget.GetTarget(changeTargetLeft);
+                    states.lockOnTransform = lockonTransform;
+                }
+            }
+
+            if (usedRightAxis)
+            {
+                if (Mathf.Abs(c_h) < 0.6f)
+                {
+                    usedRightAxis = false;
+                }
+            }
+
+
+            if (c_h != 0 || c_v != 0)
             {
                 h = c_h;
-                v = c_v;
+                v = -c_v;
                 targetSpeed = controllerSpeed;
             }
+
             FollowTarget(d);
-            HandleRotation(d, h, v, targetSpeed);
+            HandleRotations(d, v, h, targetSpeed);
         }
+
         void FollowTarget(float d)
         {
             float speed = d * followSpeed;
-            Vector3 targetPos = Vector3.Lerp(transform.position, target.position, speed);
-            transform.position = targetPos;
+            Vector3 targetPosition = Vector3.Lerp(transform.position, target.position, speed);
+            transform.position = targetPosition;
         }
-        void HandleRotation(float d, float h, float v, float targetSpeed)
+
+        void HandleRotations(float d, float v, float h, float targetSpeed)
         {
-            if(turnSmoothing > 0)
+            if (turnSmoothing > 0)
             {
-                smoothX = Mathf.SmoothDamp(smoothX, h, ref smoothXVelocity, turnSmoothing);
-                smoothY = Mathf.SmoothDamp(smoothY, v, ref smoothYVelocity, turnSmoothing);
+                smoothX = Mathf.SmoothDamp(smoothX, h, ref smoothXvelocity, turnSmoothing);
+                smoothY = Mathf.SmoothDamp(smoothY, v, ref smoothYvelocity, turnSmoothing);
             }
             else
             {
@@ -76,18 +125,18 @@ namespace SHQZ
                 smoothY = v;
             }
 
-            tilAngle -= smoothY * targetSpeed;
-            tilAngle = Mathf.Clamp(tilAngle, minAngle, maxAngle);
-            pivot.localRotation = Quaternion.Euler(tilAngle, 0f, 0f);
-            
-            if (lockOn && (lockOnTarget != null))
+            tiltAngle -= smoothY * targetSpeed;
+            tiltAngle = Mathf.Clamp(tiltAngle, minAngle, maxAngle);
+            pivot.localRotation = Quaternion.Euler(tiltAngle, 0, 0);
+
+            if (lockon && lockonTarget != null)
             {
-                Vector3 targetDir = lockOnTarget.position - transform.position;
+                Vector3 targetDir = lockonTransform.position - transform.position;
                 targetDir.Normalize();
-                //targetDir.y = 0;
+                targetDir.y = 0;
+
                 if (targetDir == Vector3.zero)
                     targetDir = transform.forward;
-
                 Quaternion targetRot = Quaternion.LookRotation(targetDir);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, d * 9);
                 lookAngle = transform.eulerAngles.y;
@@ -95,9 +144,13 @@ namespace SHQZ
             }
 
             lookAngle += smoothX * targetSpeed;
-            //Debug.Log(smoothX);
-            transform.rotation = Quaternion.Euler(0f, lookAngle, 0f);
-             
+            transform.rotation = Quaternion.Euler(0, lookAngle, 0);
+        }
+
+        public static CameraManager singleton;
+        void Awake()
+        {
+            singleton = this;
         }
     }
 }
